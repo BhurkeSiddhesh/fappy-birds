@@ -37,9 +37,6 @@ function chooseTarget(state) {
   }
 
   let targetY = nextPipe.gapY;
-  if (nextPipe.orb && !nextPipe.orb.collected && nextPipe.x - playerX < 180) {
-    targetY = nextPipe.orb.y;
-  }
 
   if (state.gravityCycle.warningActive) {
     targetY += state.gravityCycle.nextGravity === "up" ? -32 : 32;
