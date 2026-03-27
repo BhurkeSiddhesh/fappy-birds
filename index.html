@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rift Flyer</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="app-shell">
+    <div class="frame">
+      <canvas
+        id="game"
+        width="960"
+        height="540"
+        aria-label="Rift Flyer arcade game"
+      ></canvas>
+
+      <section id="menu-panel" class="panel">
+        <p class="eyebrow">Skyfall Relay</p>
+        <h1>Rift Flyer</h1>
+        <p class="lede">
+          Flap through fractured pipes, then bend gravity on command to chase bonus
+          rift orbs through the gap.
+        </p>
+        <div class="control-grid">
+          <span><strong>Space / Click</strong> flap</span>
+          <span><strong>A</strong> flip gravity</span>
+          <span><strong>Enter</strong> restart</span>
+          <span><strong>F</strong> fullscreen</span>
+        </div>
+        <button id="start-btn" class="action-btn" type="button">Launch Run</button>
+      </section>
+
+      <section id="gameover-panel" class="panel hidden">
+        <p class="eyebrow">Run Lost</p>
+        <h2 id="gameover-title">Out of Bounds</h2>
+        <p id="gameover-summary" class="lede"></p>
+        <button id="restart-btn" class="action-btn" type="button">Try Again</button>
+      </section>
+
+      <div id="hud" class="hud">
+        <div class="hud-chip">
+          <span class="hud-label">Score</span>
+          <strong id="score-value">0</strong>
+        </div>
+        <div class="hud-chip">
+          <span class="hud-label">Best</span>
+          <strong id="best-value">0</strong>
+        </div>
+        <div class="hud-chip">
+          <span class="hud-label">Gravity</span>
+          <strong id="gravity-value">Down</strong>
+        </div>
+        <div class="hud-chip">
+          <span class="hud-label">Flip</span>
+          <strong id="cooldown-value">Ready</strong>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="game.js"></script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "name": "rift-flyer",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:play": "node tools/web_game_playwright_client.mjs",
+    "verify:game": "node tools/verify_gameplay.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.54.1"
+  }
+}
