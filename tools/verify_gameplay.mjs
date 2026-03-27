@@ -47,7 +47,18 @@ function chooseTarget(state) {
   if (!nextPipe) {
     return { y: 270, pipe: null };
   }
-  const targetY = nextPipe.orb ? nextPipe.orb.y : nextPipe.gapY;
+  let targetY = nextPipe.gapY;
+  if (
+    nextPipe.orb &&
+    !nextPipe.orb.collected &&
+    nextPipe.orb.preferredGravity === state.player.gravity &&
+    nextPipe.x - playerX < 190
+  ) {
+    targetY = nextPipe.orb.y;
+  }
+  if (state.gravityCycle?.warningActive) {
+    targetY += state.gravityCycle.nextGravity === "up" ? -42 : 42;
+  }
   return { y: targetY, pipe: nextPipe };
 }
 
@@ -56,25 +67,7 @@ async function controlStep(page, state) {
   const player = state.player;
   const gravityDown = player.gravity === "down";
   const gapDistance = pipe ? pipe.x - player.x : 999;
-
-  if (pipe && player.flipCooldownMs <= 0) {
-    if (pipe.orb && gapDistance < 260 && gapDistance > 80) {
-      const desiredGravity = pipe.orb.preferredGravity;
-      const playerNearTarget = Math.abs(player.y - targetY) < 120;
-      if (playerNearTarget && desiredGravity !== player.gravity) {
-        await tapKey(page, "KeyA");
-        return;
-      }
-    } else if (targetY < 150 && gravityDown && gapDistance < 220 && gapDistance > 80) {
-      await tapKey(page, "KeyA");
-      return;
-    } else if (targetY > 390 && !gravityDown && gapDistance < 220 && gapDistance > 80) {
-      await tapKey(page, "KeyA");
-      return;
-    }
-  }
-
-  const margin = pipe ? 24 : 30;
+  const margin = state.gravityCycle?.warningActive ? 16 : pipe ? 24 : 30;
   if (gravityDown) {
     const shouldFlap =
       player.y > targetY + margin ||
@@ -142,26 +135,90 @@ async function runSeed(page, seed) {
   };
 }
 
-async function verifyGravityFlip(page, seed) {
+async function verifyAutoFlip(page, seed) {
   await page.goto(`${GAME_URL_BASE}?seed=${encodeURIComponent(seed)}`, {
     waitUntil: "domcontentloaded",
   });
   await page.click("#start-btn");
   await advance(page, 4);
 
-  const before = await readState(page);
-  await tapKey(page, "KeyA");
-  await advance(page, 2);
-  const after = await readState(page);
+  let warningState = null;
+  let previousGravity = "down";
 
+  for (let frame = 0; frame < 420; frame += 1) {
+    const current = await readState(page);
+    if (current.mode !== "playing") {
+      throw new Error("Expected the duck to stay alive while verifying auto flip.");
+    }
+    if (frame === 0 && current.player.gravity !== "down") {
+      throw new Error("Expected a fresh run to begin with downward gravity.");
+    }
+    if (!warningState && current.gravityCycle.warningActive) {
+      warningState = current;
+    }
+    if (warningState && current.player.gravity !== previousGravity) {
+      if (current.player.gravity !== warningState.gravityCycle.nextGravity) {
+        throw new Error("Expected automatic flip to match the warning indicator.");
+      }
+      return { before: warningState, after: current };
+    }
+    previousGravity = current.player.gravity;
+    await controlStep(page, current);
+  }
+
+  if (!warningState) {
+    throw new Error("Expected to observe a pre-flip warning indicator.");
+  }
+
+  const before = await readState(page);
   if (before.player.gravity !== "down") {
     throw new Error("Expected a fresh run to begin with downward gravity.");
   }
-  if (after.player.gravity !== "up" || after.player.flipCooldownMs <= 0) {
-    throw new Error("Expected gravity flip to invert direction and start cooldown.");
+  throw new Error("Expected gravity to auto-flip after the warning period.");
+}
+
+async function verifyMuteToggle(page, seed) {
+  await page.goto(`${GAME_URL_BASE}?seed=${encodeURIComponent(seed)}`, {
+    waitUntil: "domcontentloaded",
+  });
+  await page.click("#start-btn");
+  await advance(page, 2);
+
+  await page.keyboard.press("m");
+  await advance(page, 2);
+  const afterKey = await readState(page);
+
+  if (!afterKey.muted) {
+    throw new Error("Expected M to toggle muted state on.");
   }
 
-  return { before, after };
+  await page.click("#audio-toggle");
+  await advance(page, 2);
+  const afterButton = await readState(page);
+
+  if (afterButton.muted) {
+    throw new Error("Expected HUD sound button to toggle muted state off.");
+  }
+
+  return { afterKey, afterButton };
+}
+
+async function verifyMobileLayout(page, seed) {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`${GAME_URL_BASE}?seed=${encodeURIComponent(seed)}`, {
+    waitUntil: "domcontentloaded",
+  });
+  await page.click("#start-btn");
+  await advance(page, 6);
+  const state = await readState(page);
+  if (state.mode !== "playing") {
+    throw new Error("Expected the game to remain playable in the phone viewport.");
+  }
+  await capture(page, "mobile-state.png");
+  return {
+    viewport: { width: 390, height: 844 },
+    state,
+  };
 }
 
 async function forceCrashAndRestart(page) {
@@ -204,7 +261,11 @@ async function main() {
 
   let success = null;
   const attempts = [];
-  const flipCheck = await verifyGravityFlip(page, SEARCH_SEEDS[0]);
+  await page.setViewportSize({ width: 1280, height: 720 });
+  const flipCheck = await verifyAutoFlip(page, SEARCH_SEEDS[0]);
+  const muteCheck = await verifyMuteToggle(page, SEARCH_SEEDS[1]);
+  const mobileCheck = await verifyMobileLayout(page, SEARCH_SEEDS[2]);
+  await page.setViewportSize({ width: 1280, height: 720 });
 
   for (const seed of SEARCH_SEEDS) {
     const result = await runSeed(page, seed);
@@ -223,7 +284,13 @@ async function main() {
     throw new Error("Failed to score a point with the adaptive verifier.");
   }
 
+  await page.evaluate(() => {
+    window.__riftFlyerPauseForCapture = true;
+  });
   await capture(page, "score-state.png");
+  await page.evaluate(() => {
+    window.__riftFlyerPauseForCapture = false;
+  });
   const restartState = await forceCrashAndRestart(page);
   await capture(page, "restart-state.png");
 
@@ -236,6 +303,8 @@ async function main() {
     orbPoints: success.state.orbPoints,
     sawGravityFlip: success.sawGravityFlip,
     flipCheck,
+    muteCheck,
+    mobileCheck,
     restartState,
     attempts,
     consoleErrors,

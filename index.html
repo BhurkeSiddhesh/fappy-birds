@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Rift Flyer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Duckuu !!</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -13,30 +13,31 @@
         id="game"
         width="960"
         height="540"
-        aria-label="Rift Flyer arcade game"
+        aria-label="Duckuu !! arcade game"
       ></canvas>
 
       <section id="menu-panel" class="panel">
-        <p class="eyebrow">Skyfall Relay</p>
-        <h1>Rift Flyer</h1>
+        <p class="eyebrow">Pixel Pond Panic</p>
+        <h1>Duckuu !!</h1>
         <p class="lede">
-          Flap through fractured pipes, then bend gravity on command to chase bonus
-          rift orbs through the gap.
+          Glide a tiny duck through chunky pixel pipes, watch the warning beacon,
+          and get into position before gravity flips on its own.
         </p>
         <div class="control-grid">
-          <span><strong>Space / Click</strong> flap</span>
-          <span><strong>A</strong> flip gravity</span>
+          <span><strong>Tap / Space</strong> flap</span>
+          <span><strong>Warning Strip</strong> prep for auto flip</span>
           <span><strong>Enter</strong> restart</span>
           <span><strong>F</strong> fullscreen</span>
+          <span><strong>M</strong> mute sound</span>
         </div>
-        <button id="start-btn" class="action-btn" type="button">Launch Run</button>
+        <button id="start-btn" class="action-btn" type="button">Start Quack</button>
       </section>
 
       <section id="gameover-panel" class="panel hidden">
         <p class="eyebrow">Run Lost</p>
-        <h2 id="gameover-title">Out of Bounds</h2>
+        <h2 id="gameover-title">Bonk!</h2>
         <p id="gameover-summary" class="lede"></p>
-        <button id="restart-btn" class="action-btn" type="button">Try Again</button>
+        <button id="restart-btn" class="action-btn" type="button">Retry Run</button>
       </section>
 
       <div id="hud" class="hud">
@@ -53,9 +54,13 @@
           <strong id="gravity-value">Down</strong>
         </div>
         <div class="hud-chip">
-          <span class="hud-label">Flip</span>
-          <strong id="cooldown-value">Ready</strong>
+          <span class="hud-label">Next Flip</span>
+          <strong id="cooldown-value">Up 3.8s</strong>
         </div>
+        <button id="audio-toggle" class="hud-chip hud-button" type="button">
+          <span class="hud-label">Sound</span>
+          <strong id="audio-value">On</strong>
+        </button>
       </div>
     </div>
   </main>

@@ -12,3 +12,9 @@ Original prompt: lets build a flappy birds kind of game with a twist
 - Verified automatically: start flow, gravity flip on `A` with cooldown, adaptive play to a real score, forced crash to game-over, Enter restart to a fresh run, screenshot capture, and `render_game_to_text` state output.
 - Latest verification artifact: `output/verification/verification.json`.
 - Latest automated runs produced no console or page errors.
+- Reworked the presentation into a brighter pixel-art scene with a low-res scaled renderer, chunkier pipe art, and a larger pixel duck.
+- Replaced the original feel with fixed-step, lighter flight physics and cleaner gravity-flip damping.
+- Added procedural Web Audio: looping background synth, flap/flip/score/hit cues, plus `M` / HUD button mute control.
+- Added `window.__riftFlyerPauseForCapture` so the verifier can freeze a live gameplay frame before taking screenshots.
+- Expanded `tools/verify_gameplay.mjs` to validate mute toggling from both keyboard and HUD button.
+- Latest live visual artifacts to inspect: `output/verification/score-state.png`, `output/verification/restart-state.png`, and `output/live-play/active.png`.
