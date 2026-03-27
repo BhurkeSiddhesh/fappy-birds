@@ -1,6 +1,13 @@
-# Duckku Birds
+# Duckuu Birds
 
-Duckku Birds is a Flappy Bird-style browser game with a gravity-twist mechanic, rendered in chunky pixel art with synth-backed ambience.
+Duckuu Birds is a Flappy Bird-style browser game with a gravity-twist mechanic, rendered in chunky pixel art with synth-backed ambience.
+
+## Project Details
+
+- Design pillars: fast read of the playfield, predictable flip cadence, bright HUD for timing and scoring, and intentional retro styling without heavy shaders.
+- Physics tuning: fixed-step simulation with lighter lift, moderated gravity, and auto-flip every few seconds; air control is intentionally minimal to keep runs skill-driven.
+- Audio/feel: short synth stingers for flaps, flips, and scoring; ambience loops quietly in the back; all sounds are muted via HUD button or `M` key.
+- Determinism: optional `?seed=` query enables reproducible obstacle/orb layouts for testing and speedrun practice.
 
 Core idea:
 - You flap forward through pipe gaps.
@@ -130,7 +137,7 @@ Example:
 
 ```bash
 node tools/web_game_playwright_client.mjs \
-  --url file:///C:/Users/siddh/Desktop/Projects%20-%20Codex/fappy%20birds/index.html \
+  --url file:///path/to/index.html \
   --click-selector '#start-btn' \
   --actions-file test-actions/steady-flight.json \
   --iterations 2 \

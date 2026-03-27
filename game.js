@@ -8,6 +8,7 @@ const gameoverTitle = document.querySelector("#gameover-title");
 const gameoverSummary = document.querySelector("#gameover-summary");
 const startButton = document.querySelector("#start-btn");
 const restartButton = document.querySelector("#restart-btn");
+const gravityToggleButton = document.querySelector("#gravity-toggle");
 const scoreValue = document.querySelector("#score-value");
 const bestValue = document.querySelector("#best-value");
 const gravityValue = document.querySelector("#gravity-value");
@@ -24,15 +25,21 @@ const DISPLAY_SCALE_Y = canvas.height / VIEW_H;
 const PLAYER_X = 78;
 const PLAYER_RADIUS = 7;
 const PIPE_WIDTH = 26;
-const PIPE_SPEED = 92;
+const PIPE_SPEED_START = 76;
+const PIPE_SPEED_MAX = 100;
+const PIPE_SPEED_RAMP_DURATION = 120;
 const PIPE_SPACING = 108;
 const GAP_SIZE = 60;
 const PLAYER_FLAP_FORCE = 136;
 const GRAVITY_FORCE = 318;
-const AUTO_FLIP_INITIAL_MS = 2350;
-const AUTO_FLIP_BASE_MS = 3900;
-const AUTO_FLIP_VARIANCE_MS = 450;
-const AUTO_FLIP_WARNING_MS = 980;
+const AUTO_FLIP_INITIAL_MIN_MS = 30000;
+const AUTO_FLIP_INITIAL_MAX_MS = 40000;
+const AUTO_FLIP_BASE_START_MS = 13500;
+const AUTO_FLIP_BASE_END_MS = 7000;
+const AUTO_FLIP_RAMP_DURATION = 150;
+const AUTO_FLIP_VARIANCE_START_MS = 1300;
+const AUTO_FLIP_VARIANCE_END_MS = 450;
+const AUTO_FLIP_WARNING_MS = 2400;
 const TOP_BOUNDS = 10;
 const BOTTOM_BOUNDS = VIEW_H - 14;
 
@@ -55,10 +62,12 @@ const state = {
   orbPoints: 0,
   runSeed: "",
   muted: false,
+  startingGravity: "down",
   player: null,
   gravityCycle: null,
   pipes: [],
   clouds: [],
+  monkeys: [],
   sparkles: [],
   accumulator: 0,
   lastRealTimestamp: performance.now(),
@@ -286,7 +295,7 @@ function createPlayer() {
     y: VIEW_H / 2,
     r: PLAYER_RADIUS,
     vy: 0,
-    gravity: "down",
+    gravity: state.startingGravity,
     flipCooldownMs: 0,
     flapStretch: 0,
     wingTimer: 0,
@@ -295,8 +304,8 @@ function createPlayer() {
 
 function createGravityCycle() {
   return {
-    msUntilFlip: AUTO_FLIP_INITIAL_MS,
-    nextGravity: "up",
+    msUntilFlip: AUTO_FLIP_INITIAL_MAX_MS,
+    nextGravity: state.startingGravity === "down" ? "up" : "down",
     warningActive: false,
     flashMs: 0,
   };
@@ -319,6 +328,15 @@ function updateHud() {
   audioToggle.setAttribute("aria-pressed", String(!state.muted));
 }
 
+function updateGravityToggleButton() {
+  if (!gravityToggleButton) {
+    return;
+  }
+  const label = state.startingGravity === "down" ? "Down" : "Up";
+  gravityToggleButton.textContent = `Start Gravity: ${label}`;
+  gravityToggleButton.setAttribute("aria-pressed", String(state.startingGravity === "up"));
+}
+
 function reseedRun() {
   const baseSeed = seedParam ?? `${Date.now()}-${Math.random()}`;
   state.runSeed = baseSeed;
@@ -336,6 +354,16 @@ function buildClouds() {
   }));
 }
 
+function buildMonkeys() {
+  state.monkeys = Array.from({ length: 3 }, (_, index) => ({
+    x: 56 + index * 82 + sceneRng.range(-12, 12),
+    y: 98 + sceneRng.range(-8, 14),
+    moodOffset: sceneRng.range(0, 5),
+    swayOffset: sceneRng.range(0, Math.PI * 2),
+    facingLeft: sceneRng.next() > 0.5,
+  }));
+}
+
 function emitSparkles(x, y, color, count) {
   for (let i = 0; i < count; i += 1) {
     state.sparkles.push({
@@ -348,6 +376,15 @@ function emitSparkles(x, y, color, count) {
       color,
     });
   }
+}
+
+function getDifficultyProgress() {
+  return clamp(state.time / AUTO_FLIP_RAMP_DURATION, 0, 1);
+}
+
+function getPipeSpeed() {
+  const progress = clamp(state.time / PIPE_SPEED_RAMP_DURATION, 0, 1);
+  return PIPE_SPEED_START + (PIPE_SPEED_MAX - PIPE_SPEED_START) * progress;
 }
 
 function resetRun(nextMode) {
@@ -364,12 +401,14 @@ function resetRun(nextMode) {
   state.accumulator = 0;
 
   buildClouds();
+  buildMonkeys();
   seedStartingPipes();
   queueNextAutoFlip(true);
   gameoverTitle.textContent = "Bonk!";
   gameoverSummary.textContent = "";
   applyPanels();
   updateHud();
+  updateGravityToggleButton();
   render();
 }
 
@@ -405,15 +444,34 @@ function startRun() {
   resetRun("playing");
 }
 
+function toggleStartingGravity() {
+  if (state.mode === "playing") {
+    return;
+  }
+  state.startingGravity = state.startingGravity === "down" ? "up" : "down";
+  state.player = createPlayer();
+  state.gravityCycle = createGravityCycle();
+  updateHud();
+  updateGravityToggleButton();
+  render();
+}
+
 function toggleMute() {
   audio.setMuted(!state.muted);
 }
 
 function queueNextAutoFlip(initial = false) {
-  const base = initial ? AUTO_FLIP_INITIAL_MS : AUTO_FLIP_BASE_MS;
-  const variance = initial ? AUTO_FLIP_VARIANCE_MS * 0.35 : AUTO_FLIP_VARIANCE_MS;
+  const difficulty = getDifficultyProgress();
+  const base = initial
+    ? playRng.range(AUTO_FLIP_INITIAL_MIN_MS, AUTO_FLIP_INITIAL_MAX_MS)
+    : AUTO_FLIP_BASE_START_MS +
+      (AUTO_FLIP_BASE_END_MS - AUTO_FLIP_BASE_START_MS) * difficulty;
+  const variance = initial
+    ? 0
+    : AUTO_FLIP_VARIANCE_START_MS +
+      (AUTO_FLIP_VARIANCE_END_MS - AUTO_FLIP_VARIANCE_START_MS) * difficulty;
   state.gravityCycle.msUntilFlip = Math.max(
-    AUTO_FLIP_WARNING_MS + 320,
+    AUTO_FLIP_WARNING_MS + 600,
     base + playRng.range(-variance, variance),
   );
   state.gravityCycle.nextGravity = state.player.gravity === "down" ? "up" : "down";
@@ -454,7 +512,7 @@ function crash(reason) {
   gameoverTitle.textContent = reason === "bounds" ? "Splash Out" : "Bonk!";
   gameoverSummary.textContent =
     `Score ${state.score}. Pipes ${state.pipePoints}, ` +
-    `rift matches ${state.orbPoints}. Press Enter or Retry Run.`;
+    `orbs ${state.orbPoints}. Press Enter or Retry Run.`;
   emitSparkles(state.player.x, state.player.y, "#ff9db9", 10);
   audio.chirp("hit");
   applyPanels();
@@ -491,6 +549,7 @@ function updateSparkles(dt) {
 function updatePlaying(dt) {
   const player = state.player;
   const gravityCycle = state.gravityCycle;
+  const pipeSpeed = getPipeSpeed();
 
   state.time += dt;
   gravityCycle.flashMs = Math.max(0, gravityCycle.flashMs - dt * 1000);
@@ -517,7 +576,7 @@ function updatePlaying(dt) {
   player.y += player.vy * dt;
 
   for (const pipe of state.pipes) {
-    pipe.x -= PIPE_SPEED * dt;
+    pipe.x -= pipeSpeed * dt;
     pipe.orb.x = pipe.x + pipe.width / 2;
   }
 
@@ -555,7 +614,7 @@ function updatePlaying(dt) {
         Math.abs(player.x - pipe.orb.x) < player.r + 6 &&
         Math.abs(player.y - orbY) < player.r + 6;
 
-      if (closeEnough && player.gravity === pipe.orb.preferredGravity) {
+      if (closeEnough) {
         pipe.orb.collected = true;
         state.score += 1;
         state.orbPoints += 1;
@@ -616,6 +675,8 @@ function drawBackground() {
     drawPixelRect(x, 138 - frontHill, 4, frontHill, "#4a6d90");
   }
 
+  drawMonkeys();
+
   drawPixelRect(0, 150, VIEW_W, 30, "#4db0d9");
   for (let x = 0; x < VIEW_W; x += 8) {
     const rippleY = 154 + ((x + Math.floor(state.time * 30)) % 16 < 8 ? 0 : 2);
@@ -627,6 +688,63 @@ function drawBackground() {
     const reedHeight = 6 + ((x * 7) % 8);
     drawPixelRect(x, 150 - reedHeight, 2, reedHeight, "#3d8240");
     drawPixelRect(x + 1, 149 - reedHeight, 1, 2, "#b8ff8d");
+  }
+}
+
+function drawMonkey(monkey, elapsed, faceMode) {
+  const sway = Math.sin(elapsed * 3 + monkey.swayOffset) * 2;
+  const x = Math.round(monkey.x + sway);
+  const y = Math.round(monkey.y + Math.cos(elapsed * 2.4 + monkey.swayOffset) * 1.5);
+
+  pixel.save();
+  pixel.translate(x, y);
+  if (monkey.facingLeft) {
+    pixel.scale(-1, 1);
+  }
+
+  drawPixelRect(-8, -6, 10, 10, "#5a3c2d");
+  drawPixelRect(-6, -8, 3, 3, "#8b624a");
+  drawPixelRect(-1, -8, 3, 3, "#8b624a");
+  drawPixelRect(-7, -4, 8, 7, "#9f7a5d");
+  drawPixelRect(-3, 2, 5, 6, "#5a3c2d");
+  drawPixelRect(-8, 4, 3, 7, "#5a3c2d");
+  drawPixelRect(0, 4, 3, 7, "#5a3c2d");
+  drawPixelRect(-10, 0, 2, 8, "#5a3c2d");
+  drawPixelRect(2, 0, 2, 8, "#5a3c2d");
+  drawPixelRect(3, -2, 2, 10, "#5a3c2d");
+  drawPixelRect(4, 6, 2, 2, "#9f7a5d");
+
+  if (faceMode === 0) {
+    drawPixelRect(-5, -2, 1, 1, "#1d1420");
+    drawPixelRect(-1, -2, 1, 1, "#1d1420");
+    drawPixelRect(-4, 1, 4, 1, "#c4557b");
+  } else if (faceMode === 1) {
+    drawPixelRect(-5, -3, 1, 2, "#1d1420");
+    drawPixelRect(-1, -3, 1, 2, "#1d1420");
+    drawPixelRect(-5, 1, 5, 2, "#c4557b");
+    drawPixelRect(-4, 2, 3, 1, "#fff0d3");
+  } else {
+    drawPixelRect(-6, -2, 2, 1, "#1d1420");
+    drawPixelRect(-2, -2, 2, 1, "#1d1420");
+    drawPixelRect(-5, 0, 5, 3, "#c4557b");
+    drawPixelRect(-4, 1, 3, 1, "#fff0d3");
+  }
+
+  pixel.restore();
+}
+
+function drawMonkeys() {
+  if (!state.monkeys.length) {
+    return;
+  }
+
+  const phase = Math.floor(state.time / 5);
+  const burstProgress = (state.time % 5) / 5;
+  const activeFaceBurst = burstProgress < 0.35;
+
+  for (const monkey of state.monkeys) {
+    const faceMode = activeFaceBurst ? (phase + Math.floor(monkey.moodOffset)) % 3 : 0;
+    drawMonkey(monkey, state.time, faceMode);
   }
 }
 
@@ -836,7 +954,7 @@ function animationFrame(now) {
 function renderGameToText() {
   const player = state.player;
   return JSON.stringify({
-    game: "Duckku Birds",
+    game: "Duckuu Birds",
     mode: state.mode,
     coordinateSystem: {
       origin: "top-left",
@@ -903,13 +1021,17 @@ restartButton.addEventListener("click", () => {
   startRun();
 });
 
+gravityToggleButton?.addEventListener("click", () => {
+  toggleStartingGravity();
+});
+
 audioToggle.addEventListener("click", () => {
   audio.ensureReady();
   toggleMute();
 });
 
 window.addEventListener("keydown", (event) => {
-  if (["Space", "Enter", "KeyM", "KeyF"].includes(event.code)) {
+  if (["Space", "Enter", "KeyM", "KeyF", "KeyG"].includes(event.code)) {
     event.preventDefault();
   }
 
@@ -930,6 +1052,10 @@ window.addEventListener("keydown", (event) => {
     toggleMute();
     return;
   }
+  if (event.code === "KeyG") {
+    toggleStartingGravity();
+    return;
+  }
   if (event.code === "KeyF") {
     toggleFullscreen();
   }
@@ -938,5 +1064,6 @@ window.addEventListener("keydown", (event) => {
 resetRun("menu");
 applyPanels();
 updateHud();
+updateGravityToggleButton();
 render();
 window.requestAnimationFrame(animationFrame);
