@@ -18,3 +18,7 @@ Original prompt: lets build a flappy birds kind of game with a twist
 - Added `window.__riftFlyerPauseForCapture` so the verifier can freeze a live gameplay frame before taking screenshots.
 - Expanded `tools/verify_gameplay.mjs` to validate mute toggling from both keyboard and HUD button.
 - Latest live visual artifacts to inspect: `output/verification/score-state.png`, `output/verification/restart-state.png`, and `output/live-play/active.png`.
+- Renamed the game to `Duckku Birds` in the shell and testing state output.
+- Replaced manual `A` flips with scheduled auto-flips, an edge warning strip, and a HUD countdown so the player can prepare before inversion.
+- Updated the browser verifier to check warning-to-flip behavior instead of manual flip input.
+- Added a phone viewport check plus `output/verification/mobile-state.png`; portrait mode now includes a rotate-to-landscape hint because the core game remains a landscape playfield.

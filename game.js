@@ -836,7 +836,7 @@ function animationFrame(now) {
 function renderGameToText() {
   const player = state.player;
   return JSON.stringify({
-    game: "Duckuu !!",
+    game: "Duckku Birds",
     mode: state.mode,
     coordinateSystem: {
       origin: "top-left",

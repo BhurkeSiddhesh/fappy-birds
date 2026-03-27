@@ -214,7 +214,7 @@ async function verifyMobileLayout(page, seed) {
   if (state.mode !== "playing") {
     throw new Error("Expected the game to remain playable in the phone viewport.");
   }
-  await capture(page, "mobile-state.png");
+  await page.screenshot({ path: path.join(OUTPUT_DIR, "mobile-state.png"), fullPage: false });
   return {
     viewport: { width: 390, height: 844 },
     state,

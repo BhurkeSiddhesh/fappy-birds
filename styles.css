@@ -60,16 +60,19 @@ body::before {
     max(14px, env(safe-area-inset-left));
 }
 
-.frame {
-  position: relative;
-  width: min(100%, calc((100dvh - 28px) * 16 / 9), 1080px);
-  max-height: calc(100dvh - 28px);
-  aspect-ratio: 16 / 9;
-  overflow: hidden;
-  border: 6px solid var(--panel-edge);
-  box-shadow:
-    0 0 0 6px var(--panel-shadow),
-    16px 16px 0 rgba(20, 18, 50, 0.35);
+.orientation-note {
+  display: none;
+  margin: 0;
+  max-width: min(100%, 26rem);
+  padding: 10px 12px;
+  border: 3px solid rgba(255, 245, 204, 0.85);
+  background: rgba(24, 37, 76, 0.88);
+  box-shadow: 4px 4px 0 rgba(14, 21, 47, 0.45);
+  text-align: center;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  color: var(--ink, #fff2bf);
   background: #1b2a5a;
 }
 
@@ -308,29 +311,31 @@ h2 {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     width: calc(100% - 20px);
+    gap: 6px;
   }
 
   .hud-chip {
     min-width: 0;
-    padding: 8px 10px;
+    padding: 7px 9px;
   }
 
   .hud-label {
     margin-bottom: 4px;
-    font-size: 0.62rem;
+    font-size: 0.65rem;
   }
 
   .hud strong {
-    font-size: 0.95rem;
+    font-size: 0.84rem;
   }
 }
 
 @media (max-width: 560px) and (orientation: portrait) {
   .app-shell {
-    align-items: start;
+    align-content: start;
+    gap: 10px;
   }
 
-  .frame {
-    margin-top: 4px;
+  .orientation-note {
+    display: block;
   }
 }

@@ -1,10 +1,11 @@
-# Rift Flyer
+# Duckku Birds
 
-Rift Flyer is a Flappy Bird-style browser game with a gravity-twist mechanic, rendered in chunky pixel art with synth-backed ambience.
+Duckku Birds is a Flappy Bird-style browser game with a gravity-twist mechanic, rendered in chunky pixel art with synth-backed ambience.
 
 Core idea:
 - You flap forward through pipe gaps.
-- You can invert gravity with `A`.
+- Gravity flips happen automatically on a timer.
+- A warning strip and HUD countdown tell you when the next inversion is coming.
 - Each pipe has a rift orb inside/near the gap.
 - You only get orb points when your current gravity matches the orb marker (`up` or `down`).
 - The whole scene is rendered through a low-resolution pixel buffer for a retro arcade feel.
@@ -15,12 +16,13 @@ The project is intentionally simple: plain HTML/CSS/JS on a single canvas, plus 
 
 - Classic tap-to-flap movement with collision-based fail states.
 - Tuned, lighter-feeling fixed-step flight physics for more readable arcs.
-- Gravity inversion with cooldown (`A` key).
+- Automatic gravity inversion with an on-screen warning phase.
 - Orb scoring twist layered on top of pipe navigation.
 - Pixel-art presentation: bright HUD, chunky pipes, and a larger duck sprite.
 - Procedural background soundtrack plus flap/flip/score/hit sound effects.
 - Menu and game-over overlays with restart flow.
 - Sound toggle via keyboard and HUD button.
+- Responsive shell that fits narrow screens, plus a portrait-mode rotate hint for phones.
 - Fullscreen toggle (`F`, exit with `Esc`).
 - Deterministic test hooks exposed on `window`:
   - `window.render_game_to_text()`
@@ -31,7 +33,6 @@ The project is intentionally simple: plain HTML/CSS/JS on a single canvas, plus 
 ## Controls
 
 - `Space` or mouse click: flap / start
-- `A`: flip gravity
 - `Enter`: restart
 - `M`: mute or unmute audio
 - `F`: toggle fullscreen
@@ -101,8 +102,9 @@ Then open:
   - Runs `tools/verify_gameplay.mjs`.
   - Performs adaptive validation:
     - starts a run
-    - verifies gravity flip and cooldown behavior
+    - verifies warning telegraph plus automatic gravity inversion
     - verifies mute via `M` and the HUD sound button
+    - verifies a phone viewport capture
     - plays until it gets a real score
     - freezes the live frame for screenshot capture
     - forces a crash
@@ -151,6 +153,7 @@ npm run verify:game
 
 Artifacts generated in `output/verification/`:
 - `verification.json`: summary of all checks and run metrics
+- `mobile-state.png`: phone viewport page capture
 - `score-state.png`: screenshot at successful scoring state
 - `restart-state.png`: screenshot after restart verification
 
@@ -158,10 +161,15 @@ Important fields in `verification.json`:
 - `ok`: overall result
 - `seed`: seed that produced the successful run
 - `scoreAfterSuccess`, `pipePoints`, `orbPoints`: scoring breakdown
-- `flipCheck.before` / `flipCheck.after`: explicit gravity flip validation
+- `flipCheck.before` / `flipCheck.after`: warning-to-auto-flip validation
 - `muteCheck.afterKey` / `muteCheck.afterButton`: explicit audio toggle validation
+- `mobileCheck`: phone viewport validation snapshot
 - `restartState`: post-restart state validation
 - `consoleErrors`: any runtime errors captured during verification
+
+## GitHub Pages
+
+This repo includes `.github/workflows/pages.yml` which publishes the static site to GitHub Pages on pushes to `main`/`master`. After pushing, enable Pages in the repository settings and select “GitHub Actions” as the source.
 
 ## Seeded Mode (Deterministic Runs)
 
@@ -183,8 +191,9 @@ This is used by `tools/verify_gameplay.mjs` to reduce flaky automation.
 
 Returns a concise JSON string describing current playable state, including:
 - mode and score breakdown
-- player position/velocity/gravity/cooldown
+- player position/velocity/gravity/next flip timer
 - visible pipes and orb targets
+- warning/next-gravity cycle state
 - coordinate system note
 
 ### `window.advanceTime(ms)`
@@ -213,7 +222,7 @@ This makes automated input/action scripts stable across machines and frame rates
 
 - Render/update is fixed-step based in `game.js` to avoid high refresh-rate speedups.
 - Rendering happens on a 320x180 offscreen canvas scaled up to the main canvas for crisp pixels.
-- HUD values are refreshed every render for accurate cooldown/gravity display.
+- HUD values are refreshed every render for accurate gravity and next-flip display.
 - `window.__riftFlyerPauseForCapture` is used only by the verifier to freeze live frames before screenshot capture.
 - Current verification is focused on end-to-end gameplay correctness, not lint/type pipelines.
 
