@@ -82,7 +82,7 @@ canvas {
   height: 100%;
   background: #1a2650;
   image-rendering: pixelated;
-  image-rendering: crisp-edges;
+  image-rendering: -webkit-optimize-contrast;
   touch-action: manipulation;
 }
 
