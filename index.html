@@ -20,8 +20,10 @@
         <p class="eyebrow">Pixel Pond Panic</p>
         <h1>Duckuu Birds</h1>
         <p class="lede">
-          Glide a tiny duck through chunky pixel pipes, watch the warning beacon,
-          and get into position before gravity flips on its own.
+          Glide a tiny duck through chunky pixel pipes. Tap/SPACE to flap against gravity. 
+          Watch the warning strip - gravity will flip automatically! When it flips, 
+          your flaps will go the opposite way. Prepare by positioning yourself 
+          before the flip happens.
         </p>
         <div class="control-grid">
           <span><strong>Tap / Space</strong> flap</span>
@@ -37,12 +39,26 @@
         <button id="start-btn" class="action-btn" type="button">Start Quack</button>
       </section>
 
-      <section id="gameover-panel" class="panel hidden">
-        <p class="eyebrow">Run Lost</p>
-        <h2 id="gameover-title">Bonk!</h2>
-        <p id="gameover-summary" class="lede"></p>
-        <button id="restart-btn" class="action-btn" type="button">Retry Run</button>
-      </section>
+        <section id="gameover-panel" class="panel hidden">
+          <p class="eyebrow">Run Lost</p>
+          <h2 id="gameover-title">Bonk!</h2>
+          <p id="gameover-summary" class="lede"></p>
+          <button id="restart-btn" class="action-btn" type="button">Retry Run</button>
+        </section>
+
+        <section id="tutorial-panel" class="panel hidden">
+          <p class="eyebrow">Gravity Guide</p>
+          <h2>Learn the Flip</h2>
+          <p class="lede">
+            Gravity flips automatically during gameplay!<br>
+            <strong>When you see the warning strip:</strong><br>
+            • Get ready to flap in the OPPOSITE direction<br>
+            • If gravity is DOWN, flap UP to go higher<br>
+            • If gravity is UP, flap DOWN to go lower<br>
+            • Position yourself before the flip happens!
+          </p>
+          <button id="tutorial-ok" class="action-btn" type="button">Got It!</button>
+        </section>
 
       <div id="hud" class="hud">
         <div class="hud-chip">

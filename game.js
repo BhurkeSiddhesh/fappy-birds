@@ -4,6 +4,8 @@ const ctx = canvas.getContext("2d");
 const frameEl = document.querySelector(".frame");
 const menuPanel = document.querySelector("#menu-panel");
 const gameoverPanel = document.querySelector("#gameover-panel");
+const tutorialPanel = document.querySelector("#tutorial-panel");
+const tutorialOkButton = document.querySelector("#tutorial-ok");
 const gameoverTitle = document.querySelector("#gameover-title");
 const gameoverSummary = document.querySelector("#gameover-summary");
 const startButton = document.querySelector("#start-btn");
@@ -30,10 +32,11 @@ const PIPE_SPEED_MAX = 76;
 const PIPE_SPEED_RAMP_DURATION = 160;
 const PIPE_SPACING = 128;
 const GAP_SIZE = 88;
+const PIPE_CRASH_GRACE_SECONDS = 8;
 const PLAYER_FLAP_FORCE = 136;
 const GRAVITY_FORCE = 318;
-const AUTO_FLIP_INITIAL_MIN_MS = 30000;
-const AUTO_FLIP_INITIAL_MAX_MS = 40000;
+const AUTO_FLIP_INITIAL_MIN_MS = 6000;
+const AUTO_FLIP_INITIAL_MAX_MS = 7500;
 const AUTO_FLIP_BASE_START_MS = 13500;
 const AUTO_FLIP_BASE_END_MS = 7000;
 const AUTO_FLIP_RAMP_DURATION = 150;
@@ -63,6 +66,7 @@ const state = {
   runSeed: "",
   muted: false,
   startingGravity: "down",
+  showTutorial: false,
   player: null,
   gravityCycle: null,
   pipes: [],
@@ -71,6 +75,7 @@ const state = {
   sparkles: [],
   accumulator: 0,
   lastRealTimestamp: performance.now(),
+  tutorialShown: false,
 };
 
 let playRng = createRng("boot:play");
@@ -314,6 +319,7 @@ function createGravityCycle() {
 function applyPanels() {
   menuPanel.classList.toggle("hidden", state.mode !== "menu");
   gameoverPanel.classList.toggle("hidden", state.mode !== "gameover");
+  tutorialPanel.classList.toggle("hidden", !state.showTutorial);
 }
 
 function updateHud() {
@@ -399,6 +405,7 @@ function resetRun(nextMode) {
   state.pipes = [];
   state.sparkles = [];
   state.accumulator = 0;
+  state.showTutorial = false;
 
   buildClouds();
   buildMonkeys();
@@ -441,7 +448,13 @@ function spawnPipe(x) {
 
 function startRun() {
   audio.ensureReady();
+  const shouldShowTutorial = !state.tutorialShown;
+  state.tutorialShown = true;
   resetRun("playing");
+  if (shouldShowTutorial) {
+    state.showTutorial = true;
+    applyPanels();
+  }
 }
 
 function toggleStartingGravity() {
@@ -599,13 +612,15 @@ function updatePlaying(dt) {
       emitSparkles(pipe.x + pipe.width, pipe.gapY, "#ffe281", 6);
     }
 
-    if (
-      player.x + player.r > pipe.x &&
-      player.x - player.r < pipe.x + pipe.width &&
-      (player.y - player.r < gapTop + 1 || player.y + player.r > gapBottom - 1)
-    ) {
-      crash("pipe");
-      return;
+    if (state.time >= PIPE_CRASH_GRACE_SECONDS) {
+      if (
+        player.x + player.r > pipe.x &&
+        player.x - player.r < pipe.x + pipe.width &&
+        (player.y - player.r < gapTop + 1 || player.y + player.r > gapBottom - 1)
+      ) {
+        crash("pipe");
+        return;
+      }
     }
 
     if (!pipe.orb.collected) {
@@ -1028,6 +1043,15 @@ gravityToggleButton?.addEventListener("click", () => {
 audioToggle.addEventListener("click", () => {
   audio.ensureReady();
   toggleMute();
+});
+
+tutorialOkButton.addEventListener("click", () => {
+  if (state.mode === "playing") {
+    state.showTutorial = false;
+    applyPanels();
+    return;
+  }
+  startRun();
 });
 
 window.addEventListener("keydown", (event) => {
